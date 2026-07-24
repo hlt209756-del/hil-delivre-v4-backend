@@ -1,0 +1,24 @@
+{
+  "name": "hil-delivre-v4",
+  "version": "1.0.0",
+  "description": "Hil_Delivre v4 — Application de livraison pour le marché burkinabè",
+  "private": true,
+  "workspaces": [],
+  "scripts": {
+    "setup": "npm run backend:install && npm run mobile:install",
+    "backend:install": "cd backend && npm install",
+    "mobile:install": "cd apps/mobile && npm install",
+    "backend:start": "cd backend && npm start",
+    "backend:dev": "cd backend && npm run dev",
+    "backend:test": "cd backend && npm test",
+    "mobile:start": "cd apps/mobile && npm start",
+    "lint": "cd backend && npm run lint",
+    "db:setup": "echo 'Executer le schema.sql dans le SQL Editor Supabase'"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "author": "Hil_Delivre Team",
+  "license": "Proprietary"
+}

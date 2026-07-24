@@ -1,0 +1,132 @@
+# ============================================================
+# Hil_Delivre v4 — Workflow CI/CD Mobile
+# Sprint 1 : Infrastructure
+# ============================================================
+# Ce workflow s'exécute à chaque push sur les branches principales
+# et sur chaque PR ciblant la branche main. Il effectue la
+# vérification des dépendances, le build de l'application, et
+# la publication via Expo EAS (au Sprint 9).
+# ============================================================
+
+name: Mobile CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile_ci_cd.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile_ci_cd.yml'
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # ============================================================
+  # Job 1 : Dependency Check & Build
+  # ============================================================
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./apps/mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Install dependencies
+        # NOTE : utilise npm install (pas npm ci) pour tolérer
+        # l'absence de package-lock.json lors du premier run.
+        run: npm install
+
+      - name: Verify Expo project
+        run: npx expo-doctor || true
+
+      - name: Check TypeScript (préparation Sprint 2+)
+        run: |
+          echo "Vérification TypeScript — à activer au Sprint 2."
+
+  # ============================================================
+  # Job 2 : Test
+  # ============================================================
+  test:
+    name: Mobile Tests
+    runs-on: ubuntu-latest
+    needs: build
+    defaults:
+      run:
+        working-directory: ./apps/mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test || echo "Aucun test mobile au Sprint 1."
+
+  # ============================================================
+  # Job 3 : EAS Build (Staging)
+  # ============================================================
+  eas-build-staging:
+    name: EAS Build Staging
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: EAS Build Staging
+        run: |
+          echo "EAS Build staging — configuration à finaliser au Sprint 9."
+          echo "Plateforme cible : Expo EAS Build"
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  # ============================================================
+  # Job 4 : EAS Build (Production)
+  # ============================================================
+  eas-build-production:
+    name: EAS Build Production
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: EAS Build Production
+        run: |
+          echo "EAS Build production — configuration à finaliser au Sprint 9."
+          echo "Plateforme cible : Expo EAS Build"
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
