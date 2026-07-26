@@ -1,106 +1,87 @@
-/**
- * ============================================================
- * Hil_Delivre v4 — Configuration centralisée
- * Sprint 1 : Infrastructure
- * ============================================================
- * Ce module lit et valide les variables d'environnement au
- * démarrage de l'application. Si une variable obligatoire est
- * manquante, le processus se termine immédiatement avec un code
- * d'erreur non nul.
- * ============================================================
- */
-
-const dotenv = require('dotenv');
-
-// Charger les variables d'environnement depuis .env (non bloquant si absent)
-const dotenvResult = dotenv.config();
-if (dotenvResult.error) {
-  // En développement, c'est acceptable si .env.example guide le développeur
-  if (process.env.NODE_ENV === 'production') {
-    // En production, on ne crash pas ici car les variables peuvent être injectées
-    // directement dans l'environnement du conteneur/VM
-    process.stderr.write('[config] .env non trouvé — les variables doivent être injectées par l\'environnement.\n');
-  }
-}
+'use strict';
 
 /**
- * Lecture sécurisée d'une variable d'environnement obligatoire.
- * Fait planter le processus si la variable est absente en production.
+ * @fileoverview Configuration centralisée de l'environnement pour Hil_Delivre v4.
+ * Valide les variables d'environnement requises au démarrage.
+ *
+ * @module config
  */
-function requireEnvVar(name) {
-  const value = process.env[name];
-  if (!value || value.trim() === '') {
-    if (process.env.NODE_ENV === 'production') {
-      process.stderr.write(`[config] ERREUR FATALE : variable d'environnement obligatoire manquante : ${name}\n`);
-      process.exit(1);
-    }
-    // En développement, on retourne une valeur par défaut non vide pour éviter les crashes
-    return `DEV_${name}`;
-  }
-  return value;
-}
+
+const Joi = require('joi');
 
 /**
- * Lecture d'une variable d'environnement optionnelle avec valeur par défaut.
+ * Schéma de validation des variables d'environnement.
  */
-function optionalEnvVar(name, defaultValue) {
-  return process.env[name] || defaultValue;
-}
+const envSchema = Joi.object({
+  NODE_ENV: Joi.string()
+    .valid('development', 'staging', 'production', 'test')
+    .default('development'),
 
-/**
- * Lecture d'un entier positif depuis une variable d'environnement.
- */
-function requirePositiveInt(name) {
-  const value = parseInt(process.env[name], 10);
-  if (isNaN(value) || value <= 0) {
-    if (process.env.NODE_ENV === 'production') {
-      process.stderr.write(`[config] ERREUR FATALE : ${name} doit être un entier positif, reçu : ${process.env[name]}\n`);
-      process.exit(1);
-    }
-    return defaultValueMap[name] || 1;
-  }
-  return value;
-}
-
-const defaultValueMap = {
-  PORT: 3000,
-  RATE_LIMIT_WINDOW_MS: 900000,
-  RATE_LIMIT_MAX_REQUESTS: 100,
-};
-
-// ============================================================
-// Variables d'environnement validées
-// ============================================================
-
-const config = {
-  env: optionalEnvVar('NODE_ENV', 'development'),
-  port: requirePositiveInt('PORT') || 3000,
+  PORT: Joi.number().integer().min(1024).max(65535).default(3000),
+  HOST: Joi.string().default('0.0.0.0'),
 
   // Supabase
-  supabase: {
-    url: requireEnvVar('SUPABASE_URL'),
-    anonKey: requireEnvVar('SUPABASE_ANON_KEY'),
-    serviceRoleKey: requireEnvVar('SUPABASE_SERVICE_ROLE_KEY'),
-  },
+  SUPABASE_URL: Joi.string().uri().required(),
+  SUPABASE_ANON_KEY: Joi.string().required(),
+  SUPABASE_SERVICE_ROLE_KEY: Joi.string().required(),
 
   // CORS
-  cors: {
-    origins: optionalEnvVar('CORS_ORIGINS', 'http://localhost:8080')
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter(Boolean),
+  CORS_ORIGINS: Joi.string().default('http://localhost:3000'),
+
+  // Application
+  APP_URL: Joi.string().uri().default('https://app.hildelivre.bf'),
+
+  // Rate Limiting
+  RATE_LIMIT_WINDOW_MS: Joi.number().integer().default(900000), // 15 min
+  RATE_LIMIT_MAX: Joi.number().integer().default(100),
+  AUTH_RATE_LIMIT_MAX: Joi.number().integer().default(20),
+
+}).unknown(true); // Autoriser les variables non définies dans le schéma
+
+const { error, value: envVars } = envSchema.validate(process.env, {
+  abortEarly: false,
+});
+
+if (error) {
+  const missingVars = error.details.map((d) => d.message).join('\n  - ');
+  throw new Error(
+    `[CONFIG] Variables d'environnement invalides :\n  - ${missingVars}\n\nVérifiez votre fichier .env`
+  );
+}
+
+/**
+ * Configuration exportée et validée.
+ */
+const config = {
+  env: envVars.NODE_ENV,
+  isProduction: envVars.NODE_ENV === 'production',
+  isDevelopment: envVars.NODE_ENV === 'development',
+  isTest: envVars.NODE_ENV === 'test',
+
+  server: {
+    port: envVars.PORT,
+    host: envVars.HOST,
   },
 
-  // Rate limiting
+  supabase: {
+    url: envVars.SUPABASE_URL,
+    anonKey: envVars.SUPABASE_ANON_KEY,
+    serviceRoleKey: envVars.SUPABASE_SERVICE_ROLE_KEY,
+  },
+
+  cors: {
+    origins: envVars.CORS_ORIGINS.split(',').map((o) => o.trim()),
+  },
+
+  app: {
+    url: envVars.APP_URL,
+  },
+
   rateLimit: {
-    windowMs: requirePositiveInt('RATE_LIMIT_WINDOW_MS') || 900000, // 15 min par défaut
-    maxRequests: requirePositiveInt('RATE_LIMIT_MAX_REQUESTS') || 100,
-    sensitiveMaxRequests: 20, // Pour les endpoints sensibles (Sprint 2+)
+    windowMs: envVars.RATE_LIMIT_WINDOW_MS,
+    max: envVars.RATE_LIMIT_MAX,
+    authMax: envVars.AUTH_RATE_LIMIT_MAX,
   },
 };
-
-// ============================================================
-// Export
-// ============================================================
 
 module.exports = config;
