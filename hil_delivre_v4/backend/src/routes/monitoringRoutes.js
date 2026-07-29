@@ -12,7 +12,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 
 const monitoringController = require('../controllers/monitoringController');
-const { authMiddleware } = require('../middlewares/authMiddleware');
+const { authenticate } = require('../middlewares/authMiddleware');
 const {
   validateCreateExport,
   validateCacheInvalidation,
@@ -157,7 +157,7 @@ router.get(
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Toutes les routes suivantes nécessitent JWT + rôle admin
-router.use(authMiddleware);
+router.use(authenticate);
 router.use(requireAdmin);
 router.use(adminMonitoringLimiter);
 

@@ -10,7 +10,8 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 
 const certificationController = require('../controllers/certificationController');
-const { authenticate, authorize } = require('../middlewares/authMiddleware');
+const { authenticate } = require('../middlewares/authMiddleware');
+const roleMiddleware = require('../middlewares/roleMiddleware');
 const {
     validateCertificationIdParams,
     validateApproveCertification,
@@ -51,7 +52,7 @@ const adminCertLimiter = rateLimit({
 router.post(
     '/merchant/certify',
     authenticate,
-    authorize(['merchant']),
+    roleMiddleware.requireRole('merchant'),
     merchantCertLimiter,
     certificationController.requestCertification
 );
@@ -63,7 +64,7 @@ router.post(
 router.post(
     '/merchant/certify/renew',
     authenticate,
-    authorize(['merchant']),
+    roleMiddleware.requireRole('merchant'),
     merchantCertLimiter,
     certificationController.renewCertification
 );
@@ -75,7 +76,7 @@ router.post(
 router.get(
     '/merchant/certification',
     authenticate,
-    authorize(['merchant']),
+    roleMiddleware.requireRole('merchant'),
     merchantReadLimiter,
     certificationController.getMyStatus
 );
@@ -91,7 +92,7 @@ router.get(
 router.get(
     '/admin/certification-hygiene',
     authenticate,
-    authorize(['admin']),
+    roleMiddleware.requireRole('admin'),
     adminCertLimiter,
     validateAdminCertificationsQuery,
     certificationController.adminGetCertifications
@@ -104,7 +105,7 @@ router.get(
 router.put(
     '/admin/certification-hygiene/:certificationId/approve',
     authenticate,
-    authorize(['admin']),
+    roleMiddleware.requireRole('admin'),
     adminCertLimiter,
     validateCertificationIdParams,
     validateApproveCertification,
@@ -118,7 +119,7 @@ router.put(
 router.put(
     '/admin/certification-hygiene/:certificationId/revoke',
     authenticate,
-    authorize(['admin']),
+    roleMiddleware.requireRole('admin'),
     adminCertLimiter,
     validateCertificationIdParams,
     validateRevokeCertification,
@@ -132,7 +133,7 @@ router.put(
 router.post(
     '/admin/certification-hygiene/check-expirations',
     authenticate,
-    authorize(['admin']),
+    roleMiddleware.requireRole('admin'),
     adminCertLimiter,
     certificationController.adminCheckExpirations
 );

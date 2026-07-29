@@ -10,7 +10,8 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 
 const ratingController = require('../controllers/ratingController');
-const { authenticate, authorize } = require('../middlewares/authMiddleware');
+const { authenticate } = require('../middlewares/authMiddleware');
+const roleMiddleware = require('../middlewares/roleMiddleware');
 const {
     validateRatingParams,
     validateCreateRating,
@@ -82,7 +83,7 @@ router.get(
 router.post(
     '/orders/:orderId/rate',
     authenticate,
-    authorize(['client', 'delivery']),
+    roleMiddleware.requireRole('client', 'delivery'),
     ratingCreateLimiter,
     validateRatingParams,
     validateCreateRating,
@@ -96,7 +97,7 @@ router.post(
 router.get(
     '/orders/:orderId/can-rate',
     authenticate,
-    authorize(['client', 'delivery']),
+    roleMiddleware.requireRole('client', 'delivery'),
     ratingReadLimiter,
     validateRatingParams,
     validateCanRateQuery,
@@ -126,7 +127,7 @@ router.get(
 router.get(
     '/admin/ratings',
     authenticate,
-    authorize(['admin']),
+    roleMiddleware.requireRole('admin'),
     adminRatingLimiter,
     validateAdminRatingsQuery,
     ratingController.adminGetRatings
@@ -139,7 +140,7 @@ router.get(
 router.delete(
     '/admin/ratings/:ratingId',
     authenticate,
-    authorize(['admin']),
+    roleMiddleware.requireRole('admin'),
     adminRatingLimiter,
     validateRatingIdParams,
     validateModerateRating,

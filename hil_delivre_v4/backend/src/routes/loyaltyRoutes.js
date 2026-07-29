@@ -10,7 +10,8 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 
 const loyaltyController = require('../controllers/loyaltyController');
-const { authenticate, authorize } = require('../middlewares/authMiddleware');
+const { authenticate } = require('../middlewares/authMiddleware');
+const roleMiddleware = require('../middlewares/roleMiddleware');
 const {
     validateRedeemPoints,
     validateLoyaltyHistoryQuery
@@ -49,7 +50,7 @@ const adminLoyaltyLimiter = rateLimit({
 router.get(
     '/loyalty/points',
     authenticate,
-    authorize(['client']),
+    roleMiddleware.requireRole('client'),
     loyaltyReadLimiter,
     loyaltyController.getPoints
 );
@@ -61,7 +62,7 @@ router.get(
 router.get(
     '/loyalty/history',
     authenticate,
-    authorize(['client']),
+    roleMiddleware.requireRole('client'),
     loyaltyReadLimiter,
     validateLoyaltyHistoryQuery,
     loyaltyController.getHistory
@@ -74,7 +75,7 @@ router.get(
 router.post(
     '/loyalty/redeem',
     authenticate,
-    authorize(['client']),
+    roleMiddleware.requireRole('client'),
     loyaltyRedeemLimiter,
     validateRedeemPoints,
     loyaltyController.redeemPoints
@@ -91,7 +92,7 @@ router.post(
 router.get(
     '/admin/loyalty/stats',
     authenticate,
-    authorize(['admin']),
+    roleMiddleware.requireRole('admin'),
     adminLoyaltyLimiter,
     loyaltyController.adminGetStats
 );
@@ -103,7 +104,7 @@ router.get(
 router.post(
     '/admin/loyalty/expire',
     authenticate,
-    authorize(['admin']),
+    roleMiddleware.requireRole('admin'),
     adminLoyaltyLimiter,
     loyaltyController.adminExpirePoints
 );

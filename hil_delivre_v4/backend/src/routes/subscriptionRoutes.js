@@ -10,7 +10,7 @@ const { rateLimiter } = require("../middlewares/rateLimiter"); // Supposé exist
 const router = express.Router();
 
 // Routes accessibles aux utilisateurs authentifiés (marchands et livreurs)
-router.use(authMiddleware); // Toutes les routes ci-dessous nécessitent une authentification
+router.use(authMiddleware.authenticate); // Toutes les routes ci-dessous nécessitent une authentification
 
 // Récupérer le statut de l'abonnement de l'utilisateur
 router.get(
